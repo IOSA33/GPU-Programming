@@ -20,7 +20,6 @@ int main()
     // --------------------------------------------- private(a)
     int a = 3;
     int b = 5;
-
     #pragma omp parallel private(a) shared(b)
     {
         std::cout << a << std::endl;  // undefined behavior
@@ -34,10 +33,9 @@ int main()
         std::cout << b << std::endl; // 7
     }
 
-    // --------------------------------------------- private(a)
+    // --------------------------------------------- firstprivate(a1)
     int a1 = 3;
     int b1 = 5;
-
     #pragma omp parallel firstprivate(a1) shared(b1)
     {
         std::cout << a1 << std::endl;  // prints 3
@@ -53,7 +51,29 @@ int main()
         std::cout << b << std::endl; // 7
     }
 
+    // --------------------------------------------- reduction(a2)
+    int a2 = 0;
+    #pragma omp parallel
+    {
+        int _a = 0; // making the private var for every thread;
 
+        #pragma omp for nowait
+        {
+            for (int i = 0; i < 10; i++) {
+                _a = i;
+            }
+        }
+
+        #pragma omp atomic // every other thread should wait before some thread reads and writes
+        a = a + _a; // No race condition, because of the atomic
+    }
+    // same as above
+    #pragma omp parallel for reduction(+:a)
+    {
+        for (int i = 0; i < 10; i++) {
+            a = a + i;
+        }
+    }
 
     return 0;
 }
