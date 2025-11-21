@@ -1,0 +1,61 @@
+__global__ void process(double *a, const double *b, int n) {
+
+    int threadId = blockIdx.x * blockDim.x + threadIdx.x;
+    int threadCount = gridDim.x * blockDim.x;
+
+    for(int i = threadId; i < n; i += threadCount) {
+        const double md = -b[i];
+        double y = (48.0/17.0) + (32.0/17.0) * md;
+
+        y = y + y * (1.0 + md * y);
+        y = y + y * (1.0 + md * y);
+        y = y + y * (1.0 + md * y);
+        y = y + y * (1.0 + md * y);
+
+        a[i] = y;
+    }
+}
+
+Calculation:
+meillä on kaksi double vektoria, eli jokainen for loop operaatio on noin
+16 bytes = 2 * 8 bytes.
+Lasketaan Flops:
+Yhdessä for loop operaatiossa on noin 19 flops, koska jos katsotaan funktion sisään ja nähdään
+että jokainen operaatio *, + on yksi flop ja jos lasketaan ne kaikki yhteen saadaan 19
+
+Operational intensity:
+τ = Flop/Byte
+τ = 19 flop / 16 byte ≈ 1,1875 flop/byte
+
+Upper Bound:
+γ_1(τ)=Γ        ->   Γ = 1430 GFolps/s, theoretical, according to the manufacturer.
+Upper Bound: Memory brandwith:
+γ_2(τ)=Δ × τ    ->   γ_2(τ)= (288 GB/s) * (1,1875 flop/byte) = 342 GFlops/s, upper bound for memory
+
+
+Balance point:
+Φ = (1430 GFolps/s) / (288 GB/s) = 4,9652 flop/s
+
+Operational intensity of the method:
+We can see that (υ = 1,1875 flop/byte) < 4,9652 flop/s.
+υ < Φ, so Upper bound y_2 dominates, method is memory bound.
+
+
+Achieved performance:
+From google F_count = flop * elemments =  19 flop * 33 554 432 elemments = 0.6375 GFlop
+λ = F_count / t      ->   λ = 0.6375 GFlop / 0.00306797 s = 207,79212 GFlop / s
+
+We can see that the λ = 207,79212 GFlop/s is pretty close to achievable computing power
+
+
+
+
+I dont really found, where I can draw the grapth in the server GPU.
+
+
+
+
+Conclusion:
+The main conclusion is that the code is memory bound,
+it means the task is limited by memory bandwidth. So we cant avhieve according to the manufacturer
+1430 GFolps/s computing power because we constantly waiting for data from GPU memory.
